@@ -1,8 +1,6 @@
-# rummikub-leg
+# pegboard-board-hook
 
-This project contains JSCAD code in `index.js` to generate a replacement leg for my [Rummikub](https://en.wikipedia.org/wiki/Rummikub) board game set.
-
-![Rummikub Leg](rummikub-leg.png)
+This project contains JSCAD code in `index.js` to generate snowboard and skateboard hooks for 1-inch pegboard.
 
 ## Usage
 
