@@ -4,29 +4,20 @@ const hookMountBase = require('./peglock-mount-base.stl')
 
 const createSteelPegboardHook = (params) => {
   let pegRadius = (params.pegDiameter + params.pegClearance) / 2
-  let hookPart = primitives.cylinder({ radius: pegRadius, height: params.pegDistance / 2, segments: 32 })
+  let steelCylinder = primitives.cylinder({ radius: pegRadius, height: params.pegDistance / 2, segments: 32 })
 
   const fork = [
-    transforms.translate([params.pegDistance / 2, -pegRadius / 2, params.pegDistance / 2 + pegRadius], transforms.rotateX(utils.degToRad(params.existingHookAngle), transforms.translateY(-pegRadius, hookPart))),
-    transforms.translate([params.pegDistance / 2, 0, 0], hookPart),
+    transforms.translate([params.pegDistance / 2, -pegRadius / 2, params.pegDistance / 2 + pegRadius], transforms.rotateX(utils.degToRad(params.existingHookAngle), transforms.translateY(-pegRadius, steelCylinder))),
+    transforms.translate([params.pegDistance / 2, 0, 0], steelCylinder),
     transforms.translate([0, 0, -params.pegDistance / 2 + pegRadius], transforms.rotateY(utils.degToRad(90), primitives.cylinder({ radius: pegRadius, height: params.pegDistance - (2 * pegRadius), segments: 32 }))),
-    transforms.translate([-params.pegDistance / 2, 0, 0], hookPart),
-    transforms.translate([-params.pegDistance / 2, -pegRadius / 2, params.pegDistance / 2 + pegRadius], transforms.rotateX(utils.degToRad(params.existingHookAngle), transforms.translateY(-pegRadius, hookPart))),
+    transforms.translate([-params.pegDistance / 2, 0, 0], steelCylinder),
+    transforms.translate([-params.pegDistance / 2, -pegRadius / 2, params.pegDistance / 2 + pegRadius], transforms.rotateX(utils.degToRad(params.existingHookAngle), transforms.translateY(-pegRadius, steelCylinder))),
   ]
   const arm = [
     transforms.translate([0, params.pegDistance / 2, pegRadius], transforms.rotateX(utils.degToRad(95), primitives.cylinder({ radius: pegRadius, height: params.pegDistance, segments: 32 }))),
   ]
-  return booleans.union(hulls.hullChain(fork), arm)
-  //return 
-
-  
-  let circle = primitives.circle({ radius: pegRadius, center: [pegRadius, 0, 0] })
-
-  return booleans.union(
-    //primitives.cylinder({ radius: (params.pegDiameter + params.pegClearance) / 2, height: params.pegDistance * 3, center: [1, 1, 1], segments: 32 })
-    transforms.rotate([0, utils.degToRad(90), utils.degToRad(90)], extrusions.extrudeLinear({ height: params.pegDistance / 2 }, circle)),
-    extrusions.extrudeRotate({ angle: utils.degToRad(params.existingHookAngle), segments: 24 }, circle)
-  )
+  let steelPegboardHook = booleans.union(hulls.hullChain(fork), arm)
+  return transforms.rotateX(utils.degToRad(90), steelPegboardHook)
 }
 
 const createHookMountBase = (params) => {
@@ -39,6 +30,7 @@ const createBoardHook = (params) => {
 
 const main = (params) => {
   let existingSteelPegboardHook = createSteelPegboardHook(params)
+
   let hookMountBase = createHookMountBase(params)
   let boardHook = createBoardHook(params)
   return booleans.union(existingSteelPegboardHook)//, hookMountBase, boardHook)
