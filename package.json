@@ -6,6 +6,10 @@
   "author": "Will Duff",
   "license": "MIT",
   "dependencies": {
-    "@jscad/modeling": "^2.12.4"
+    "@jscad/modeling": "^2.12.4",
+    "@jscad/cli": "^2.3.5"
+  },
+  "scripts": {
+    "build": "jscad index.js -o pegboard-board-hook.stl"
   }
 }
