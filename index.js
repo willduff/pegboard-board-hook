@@ -4,17 +4,17 @@ const hookMountBase = require('./peglock-mount-base.stl')
 
 const createSteelPegboardHook = (params) => {
   const pegRadius = (params.pegDiameter + params.pegClearance) / 2
-  const steelCylinder = primitives.cylinder({ radius: pegRadius, height: params.pegDistance / 2, segments: 32 })
+  const steelCylinder = primitives.cylinder({ radius: pegRadius, height: params.pegDistance / 2 + params.pegDiameter, segments: 32 })
 
   const fork = [
-    transforms.translate([params.pegDistance / 2, -pegRadius / 2, params.pegDistance / 2 + pegRadius], transforms.rotateX(utils.degToRad(params.existingHookAngle), transforms.translateY(-pegRadius, steelCylinder))),
-    transforms.translate([params.pegDistance / 2, 0, 0], primitives.cylinder({ radius: pegRadius, height: (params.pegDistance / 2) + pegRadius, segments: 32 })),
-    transforms.translate([0, 0, -params.pegDistance / 2 + pegRadius], transforms.rotateY(utils.degToRad(90), primitives.cylinder({ radius: pegRadius, height: params.pegDistance, segments: 32 }))),
-    transforms.translate([-params.pegDistance / 2, 0, 0], primitives.cylinder({ radius: pegRadius, height: (params.pegDistance / 2) + pegRadius, segments: 32 })),
-    transforms.translate([-params.pegDistance / 2, -pegRadius / 2, params.pegDistance / 2 + pegRadius], transforms.rotateX(utils.degToRad(params.existingHookAngle), transforms.translateY(-pegRadius, steelCylinder))),
+    transforms.translate([params.pegDistance / 2, -pegRadius, params.pegDistance / 2 + pegRadius / 2], transforms.rotateX(utils.degToRad(params.existingHookAngle), transforms.translateY(-pegRadius, steelCylinder))),
+    transforms.translate([params.pegDistance / 2, 0, 0], primitives.cylinder({ radius: pegRadius, height: (params.pegDistance / 2), segments: 32 })),
+    transforms.translate([0, 0, -params.pegDistance / 2 + pegRadius], transforms.rotateY(utils.degToRad(90), primitives.cylinder({ radius: pegRadius, height: params.pegDistance + pegRadius / 2, segments: 32 }))),
+    transforms.translate([-params.pegDistance / 2, 0, 0], primitives.cylinder({ radius: pegRadius, height: (params.pegDistance / 2), segments: 32 })),
+    transforms.translate([-params.pegDistance / 2, -pegRadius, params.pegDistance / 2 + pegRadius / 2], transforms.rotateX(utils.degToRad(params.existingHookAngle), transforms.translateY(-pegRadius, steelCylinder))),
   ]
   const arm = [
-    transforms.translate([0, params.pegDistance / 4, pegRadius], transforms.rotateX(utils.degToRad(95), primitives.cylinder({ radius: pegRadius, height: params.pegDistance + params.pegDiameter, segments: 32 }))),
+    transforms.translate([0, params.pegDistance / 4  + pegRadius, pegRadius], transforms.rotateX(utils.degToRad(100), primitives.cylinder({ radius: pegRadius, height: params.pegDistance+ pegRadius, segments: 32 }))),
     transforms.translate([0, -pegRadius*1.25, -params.pegDistance + pegRadius], transforms.rotateX(utils.degToRad(5), primitives.cylinder({ radius: pegRadius, height: params.pegDistance * 2, segments: 32 }))),
   ]
 
@@ -75,13 +75,13 @@ const getParameterDefinitions = () => {
         { name: 'pegDiameter', type: 'number', initial: 6,  caption: 'Existing Steel Pegboard Hook: Peg diameter in mm' },
         { name: 'pegClearance', type: 'number', initial: 0.5,  caption: 'Existing Steel Pegboard Hook: Peg clearance in mm' },
 
-        { name: 'existingHookAngle', type: 'number', initial: 35,  caption: 'Existing Steel Pegboard Hook: Angle in degrees' },
+        { name: 'existingHookAngle', type: 'number', initial: 45,  caption: 'Existing Steel Pegboard Hook: Angle in degrees' },
         { name: 'numInsertSegments', type: 'number', initial: 18,  caption: 'Existing Steel Pegboard Hook: Number of segments for insertion molding' },
         { name: 'insertDropDistance', type: 'number', initial: 25.4,  caption: 'Existing Steel Pegboard Hook: Insertion drop distance in mm' },
         { name: 'insertRotationAngle', type: 'number', initial: 45,  caption: 'Existing Steel Pegboard Hook: Insertion rotation angle in degrees' },
 
-        { name: 'boardHookBaseWidth', type: 'number', initial: 64,  caption: 'Board Hook Base: Width in mm' },
-        { name: 'boardHookBaseHeight', type: 'number', initial: 64,  caption: 'Board Hook Base: Height in mm' },
+        { name: 'boardHookBaseWidth', type: 'number', initial: 72,  caption: 'Board Hook Base: Width in mm' },
+        { name: 'boardHookBaseHeight', type: 'number', initial: 72,  caption: 'Board Hook Base: Height in mm' },
         { name: 'boardHookBaseDepth', type: 'number', initial: 50.8,  caption: 'Board Hook Base: Depth in mm' },
     ]
 }
