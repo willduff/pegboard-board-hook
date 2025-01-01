@@ -15,9 +15,10 @@ const createSteelPegboardHook = (params) => {
   ]
   const arm = [
     transforms.translate([0, params.pegDistance / 2, pegRadius], transforms.rotateX(utils.degToRad(95), primitives.cylinder({ radius: pegRadius, height: params.pegDistance, segments: 32 }))),
+    transforms.translate([0, -pegRadius*1.25, -params.pegDistance + pegRadius], transforms.rotateX(utils.degToRad(5), primitives.cylinder({ radius: pegRadius, height: params.pegDistance * 2, segments: 32 }))),
   ]
 
-  const steelPegboardHook = booleans.union(hulls.hullChain(fork), arm)
+  const steelPegboardHook = booleans.union(hulls.hullChain(fork), hulls.hullChain(arm))
   return transforms.centerY(transforms.rotateX(utils.degToRad(180 - params.existingHookAngle), steelPegboardHook))
 }
 
@@ -73,7 +74,7 @@ const getParameterDefinitions = () => {
         { name: 'insertDropDistance', type: 'number', initial: 25.4,  caption: 'Existing Steel Pegboard Hook: Insertion drop distance in mm' },
 
         { name: 'boardHookBaseWidth', type: 'number', initial: 40,  caption: 'Board Hook Base: Width in mm' },
-        { name: 'boardHookBaseHeight', type: 'number', initial: 40,  caption: 'Board Hook Base: Height in mm' },
+        { name: 'boardHookBaseHeight', type: 'number', initial: 60,  caption: 'Board Hook Base: Height in mm' },
         { name: 'boardHookBaseDepth', type: 'number', initial: 50.8,  caption: 'Board Hook Base: Depth in mm' },
     ]
 }
