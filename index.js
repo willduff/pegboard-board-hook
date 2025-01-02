@@ -15,11 +15,11 @@ const createSteelPegboardHook = (params) => {
   ]
   const arm = [
     transforms.translate([0, params.pegDistance / 4  + pegRadius, pegRadius], transforms.rotateX(utils.degToRad(100), primitives.cylinder({ radius: pegRadius, height: params.pegDistance+ pegRadius, segments: 32 }))),
-    transforms.translate([0, -pegRadius*1.25, -params.pegDistance + pegRadius], transforms.rotateX(utils.degToRad(5), primitives.cylinder({ radius: pegRadius, height: params.pegDistance * 2, segments: 32 }))),
+    transforms.translate([0, -pegRadius*1.25, -params.pegDistance + pegRadius], transforms.rotateX(utils.degToRad(0), primitives.cylinder({ radius: pegRadius, height: params.pegDistance * 2, segments: 32 }))),
   ]
 
   const steelPegboardHook = booleans.union(hulls.hullChain(fork), arm)
-  return transforms.centerY(transforms.rotateX(utils.degToRad(180 - params.existingHookAngle), steelPegboardHook))
+  return transforms.centerY(transforms.rotate([utils.degToRad(180), utils.degToRad(0), utils.degToRad(0)], steelPegboardHook))
 }
 
 const createHookMountBase = (params) => {
@@ -27,7 +27,9 @@ const createHookMountBase = (params) => {
 }
 
 const createBoardHookBase = (params) => {
-  return primitives.roundedCuboid({ size: [params.boardHookBaseWidth, params.boardHookBaseHeight, params.boardHookBaseDepth] })
+  const poly = primitives.polygon({ points: [[-params.pegDistance * 1.5, 0], [params.boardHookBaseWidth, 0], [params.boardHookBaseWidth - (params.pegDistance / 2), params.boardHookBaseHeight], [-params.pegDistance, params.boardHookBaseHeight]] })
+  const extrudedPoly = extrusions.extrudeLinear({ height: params.boardHookBaseDepth }, poly)
+  return transforms.centerY(extrudedPoly)
 }
 
 const main = (params) => {
@@ -44,29 +46,26 @@ const main = (params) => {
     existingSteelPegboardHookInsertSlices.push(transforms.translateZ(-iterationDropDistance * i, existingSteelPegboardHook))
   }
 
-  // Rotate the steel pegboard hook, to create a mold for how it will be installed
+  // Slide the steel pegboard hook, to create a mold for how it will be installed
   existingSteelPegboardHook = transforms.translateZ(-params.insertDropDistance, existingSteelPegboardHook)
-  const iterationRotationAngle = params.insertRotationAngle / params.numInsertSegments
+  const iterationSlideDistance = params.insertSlideDistance / params.numInsertSegments
   for (let i = 0; i < params.numInsertSegments; i++) {
-    existingSteelPegboardHookInsertSlices.push(transforms.rotateZ(utils.degToRad(iterationRotationAngle * i), existingSteelPegboardHook))
-  }
-
-  // Finally, slide the steel pegboard hook into place, to create a mold for how it will be installed
-  const iterationPullDistance = (params.insertDropDistance / 3) / params.numInsertSegments
-  for (let i = 0; i < params.numInsertSegments; i++) {
-    existingSteelPegboardHookInsertSlices.push(transforms.translateZ(iterationPullDistance * i, transforms.rotateZ(utils.degToRad(params.insertRotationAngle), existingSteelPegboardHook)))
+    existingSteelPegboardHookInsertSlices.push(transforms.translateX(iterationSlideDistance * i, existingSteelPegboardHook))
   }
   
   let existingSteelPegboardHookInsertMold = booleans.union(existingSteelPegboardHookInsertSlices)
+
+  // Align to the min X axis of the hook base, and the max Z axis
+  existingSteelPegboardHookInsertMold = transforms.translate([0, 0, params.insertDropOffset], existingSteelPegboardHookInsertMold)
 
   // Create the board hook base and subtract away the insert mold
   let boardHook = createBoardHookBase(params)
   boardHook = booleans.subtract(boardHook, existingSteelPegboardHookInsertMold)
 
   // TODO
-  //let hookMountBase = createHookMountBase(params)
+  let hookMountBase = createHookMountBase(params)
   
-  return boardHook//, hookMountBase, boardHook)
+  return [existingSteelPegboardHookInsertMold, boardHook]//, existingSteelPegboardHookInsertMold]//, , boardHook)
 }
 
 const getParameterDefinitions = () => {
@@ -75,14 +74,15 @@ const getParameterDefinitions = () => {
         { name: 'pegDiameter', type: 'number', initial: 6,  caption: 'Existing Steel Pegboard Hook: Peg diameter in mm' },
         { name: 'pegClearance', type: 'number', initial: 0.5,  caption: 'Existing Steel Pegboard Hook: Peg clearance in mm' },
 
-        { name: 'existingHookAngle', type: 'number', initial: 45,  caption: 'Existing Steel Pegboard Hook: Angle in degrees' },
-        { name: 'numInsertSegments', type: 'number', initial: 18,  caption: 'Existing Steel Pegboard Hook: Number of segments for insertion molding' },
-        { name: 'insertDropDistance', type: 'number', initial: 25.4,  caption: 'Existing Steel Pegboard Hook: Insertion drop distance in mm' },
-        { name: 'insertRotationAngle', type: 'number', initial: 45,  caption: 'Existing Steel Pegboard Hook: Insertion rotation angle in degrees' },
+        { name: 'existingHookAngle', type: 'number', initial: 40,  caption: 'Existing Steel Pegboard Hook: Angle in degrees' },
+        { name: 'numInsertSegments', type: 'number', initial: 24,  caption: 'Existing Steel Pegboard Hook: Number of segments for insertion molding' },
+        { name: 'insertDropOffset', type: 'number', initial: 113,  caption: 'Existing Steel Pegboard Hook: Insertion drop offset in mm' },
+        { name: 'insertDropDistance', type: 'number', initial: 84,  caption: 'Existing Steel Pegboard Hook: Insertion drop distance in mm' },
+        { name: 'insertSlideDistance', type: 'number', initial: 28,  caption: 'Existing Steel Pegboard Hook: Insertion rotation angle in degrees' },
 
-        { name: 'boardHookBaseWidth', type: 'number', initial: 72,  caption: 'Board Hook Base: Width in mm' },
-        { name: 'boardHookBaseHeight', type: 'number', initial: 72,  caption: 'Board Hook Base: Height in mm' },
-        { name: 'boardHookBaseDepth', type: 'number', initial: 50.8,  caption: 'Board Hook Base: Depth in mm' },
+        { name: 'boardHookBaseWidth', type: 'number', initial: 64,  caption: 'Board Hook Base: Width in mm' },
+        { name: 'boardHookBaseHeight', type: 'number', initial: 44,  caption: 'Board Hook Base: Height in mm' },
+        { name: 'boardHookBaseDepth', type: 'number', initial: 135,  caption: 'Board Hook Base: Depth in mm' },
     ]
 }
 
