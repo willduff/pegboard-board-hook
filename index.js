@@ -1,4 +1,4 @@
-const { primitives, booleans, extrusions, transforms, utils, hulls } = require('@jscad/modeling')
+const { primitives, booleans, extrusions, transforms, utils, hulls, maths, geometries } = require('@jscad/modeling')
 
 const hookMountBase = require('./peglock-mount-base.stl')
 
@@ -23,13 +23,36 @@ const createSteelPegboardHook = (params) => {
 }
 
 const createHookMountBase = (params) => {
-  return hookMountBase
+  return transforms.translateX(params.pegDistance / 2, transforms.rotateX(utils.degToRad(90), transforms.rotateY(utils.degToRad(90), hookMountBase)))
 }
 
 const createBoardHookBase = (params) => {
-  const poly = primitives.polygon({ points: [[-params.pegDistance * 1.5, 0], [params.boardHookBaseWidth, 0], [params.boardHookBaseWidth - (params.pegDistance / 2), params.boardHookBaseHeight], [-params.pegDistance, params.boardHookBaseHeight]] })
-  const extrudedPoly = extrusions.extrudeLinear({ height: params.boardHookBaseDepth }, poly)
-  return transforms.centerY(extrudedPoly)
+  let boardHookBase = createBoardHookBaseExtrusion(params)
+
+  let mirroredBoardHookBase = transforms.translate([0, (0.05 * params.boardHookBaseHeight) / 2, 1], 
+    transforms.scale([0.95, 0.95, 0.95],
+      transforms.mirrorZ(createBoardHookBaseExtrusion(params))
+    )
+  )
+  
+  boardHookBase = booleans.union(boardHookBase, mirroredBoardHookBase)
+  return transforms.translateY(-params.boardHookBaseHeight / 2, boardHookBase)
+}
+
+const createBoardHookBaseExtrusion = (params) => {
+    const startPoly = primitives.polygon({ points: [[-params.pegDistance * 1.5, 0], [params.boardHookBaseWidth, 0], [params.boardHookBaseWidth - (params.pegDistance / 2), params.boardHookBaseHeight], [-params.pegDistance, params.boardHookBaseHeight]] })
+    const base = extrusions.slice.fromSides(geometries.geom2.toSides(startPoly))
+    return extrusions.extrudeFromSlices(
+      {
+        numberOfSlices: params.boardHookBaseDepth,
+        callback: (progress, count, base) => {
+          const translationMatrix = maths.mat4.fromTranslation(maths.mat4.create(), [0, 0, progress * params.boardHookBaseDepth])
+          const scaleMatrix = maths.mat4.fromScaling(maths.mat4.create(), [1, (1 - progress) * params.boardHookBaseNearFarPlaneScale + 1, 1])
+          //const scaleMatrix = maths.mat4.identity(maths.mat4.create())
+          return extrusions.slice.transform(maths.mat4.multiply(maths.mat4.create(), scaleMatrix, translationMatrix), base)
+        }
+      }, base
+    )
 }
 
 const main = (params) => {
@@ -62,10 +85,10 @@ const main = (params) => {
   let boardHook = createBoardHookBase(params)
   boardHook = booleans.subtract(boardHook, existingSteelPegboardHookInsertMold)
 
-  // TODO
-  let hookMountBase = createHookMountBase(params)
-  
-  return [existingSteelPegboardHookInsertMold, boardHook]//, existingSteelPegboardHookInsertMold]//, , boardHook)
+  // Attach the hook mount base that will slide into the peglock
+  let hookMountBase = transforms.rotateZ(utils.degToRad(params.boardHookAngle), createHookMountBase(params))
+  let hookMountBase2 = transforms.rotateZ(utils.degToRad(params.boardHookAngle), transforms.translateY(params.pegDistance, createHookMountBase(params)))
+  return transforms.rotateX(utils.degToRad(90), booleans.union(boardHook, hookMountBase, hookMountBase2))
 }
 
 const getParameterDefinitions = () => {
@@ -73,6 +96,8 @@ const getParameterDefinitions = () => {
         { name: 'pegDistance', type: 'number', initial: 25.4,  caption: 'Existing Steel Pegboard Hook: Peg distance in mm' },
         { name: 'pegDiameter', type: 'number', initial: 6,  caption: 'Existing Steel Pegboard Hook: Peg diameter in mm' },
         { name: 'pegClearance', type: 'number', initial: 0.5,  caption: 'Existing Steel Pegboard Hook: Peg clearance in mm' },
+        
+        { name: 'pegMountDepth', type: 'number', initial: 7,  caption: 'Existing Hook Mount Base: Depth in mm' },
 
         { name: 'existingHookAngle', type: 'number', initial: 40,  caption: 'Existing Steel Pegboard Hook: Angle in degrees' },
         { name: 'numInsertSegments', type: 'number', initial: 24,  caption: 'Existing Steel Pegboard Hook: Number of segments for insertion molding' },
@@ -83,6 +108,8 @@ const getParameterDefinitions = () => {
         { name: 'boardHookBaseWidth', type: 'number', initial: 64,  caption: 'Board Hook Base: Width in mm' },
         { name: 'boardHookBaseHeight', type: 'number', initial: 44,  caption: 'Board Hook Base: Height in mm' },
         { name: 'boardHookBaseDepth', type: 'number', initial: 135,  caption: 'Board Hook Base: Depth in mm' },
+        { name: 'boardHookAngle', type: 'number', initial: -5,  caption: 'Board Hook Base: Angle in degrees, offset from vertical' },
+        { name: 'boardHookBaseNearFarPlaneScale', type: 'number', initial: 0.5,  caption: 'Board Hook Base: Scale for difference between near and far plane' },
     ]
 }
 
