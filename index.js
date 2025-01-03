@@ -23,36 +23,49 @@ const createSteelPegboardHook = (params) => {
 }
 
 const createHookMountBase = (params) => {
-  return transforms.translateX(params.pegDistance / 2, transforms.rotateX(utils.degToRad(90), transforms.rotateY(utils.degToRad(90), hookMountBase)))
+  return transforms.translateZ(params.pegMountDepth - (params.pegClearance * 2),
+    transforms.translateX(params.pegDistance / 2, 
+      transforms.rotateX(utils.degToRad(90), 
+        transforms.rotateY(utils.degToRad(90), 
+          hookMountBase
+        )
+      )
+    )
+  )
 }
 
 const createBoardHookBase = (params) => {
   let boardHookBase = createBoardHookBaseExtrusion(params)
-
-  let mirroredBoardHookBase = transforms.translate([0, (0.05 * params.boardHookBaseHeight) / 2, 1], 
-    transforms.scale([0.95, 0.95, 0.95],
-      transforms.mirrorZ(createBoardHookBaseExtrusion(params))
-    )
-  )
-  
-  boardHookBase = booleans.union(boardHookBase, mirroredBoardHookBase)
   return transforms.translateY(-params.boardHookBaseHeight / 2, boardHookBase)
 }
 
 const createBoardHookBaseExtrusion = (params) => {
     const startPoly = primitives.polygon({ points: [[-params.pegDistance * 1.5, 0], [params.boardHookBaseWidth, 0], [params.boardHookBaseWidth - (params.pegDistance / 2), params.boardHookBaseHeight], [-params.pegDistance, params.boardHookBaseHeight]] })
     const base = extrusions.slice.fromSides(geometries.geom2.toSides(startPoly))
-    return extrusions.extrudeFromSlices(
+    
+    let boardHookBaseExtrusion = extrusions.extrudeFromSlices(
       {
         numberOfSlices: params.boardHookBaseDepth,
         callback: (progress, count, base) => {
           const translationMatrix = maths.mat4.fromTranslation(maths.mat4.create(), [0, 0, progress * params.boardHookBaseDepth])
           const scaleMatrix = maths.mat4.fromScaling(maths.mat4.create(), [1, (1 - progress) * params.boardHookBaseNearFarPlaneScale + 1, 1])
-          //const scaleMatrix = maths.mat4.identity(maths.mat4.create())
           return extrusions.slice.transform(maths.mat4.multiply(maths.mat4.create(), scaleMatrix, translationMatrix), base)
         }
       }, base
     )
+
+    let boardHookBaseCutout = extrusions.extrudeFromSlices(
+      {
+        numberOfSlices: params.pegMountDepth,
+        callback: (progress, count, base) => {
+          const translationMatrix = maths.mat4.fromTranslation(maths.mat4.create(), [0, (0.08 * params.boardHookBaseHeight) / 2, progress * (params.pegMountDepth - (params.pegClearance * 2))])
+          const scaleMatrix = maths.mat4.fromScaling(maths.mat4.create(), [1.2, (params.boardHookBaseNearFarPlaneScale + 1) * 0.92, 1])
+          return extrusions.slice.transform(maths.mat4.multiply(maths.mat4.create(), scaleMatrix, translationMatrix), base)
+        }
+      }, base
+    )
+
+    return booleans.subtract(boardHookBaseExtrusion, boardHookBaseCutout)
 }
 
 const main = (params) => {
