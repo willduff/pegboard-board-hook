@@ -24,10 +24,12 @@ const createSteelPegboardHook = (params) => {
 
 const createHookMountBase = (params) => {
   return transforms.translateZ(params.pegMountDepth - (params.pegClearance * 2),
-    transforms.translateX(params.pegDistance / 2, 
-      transforms.rotateX(utils.degToRad(90), 
-        transforms.rotateY(utils.degToRad(90), 
-          hookMountBase
+    transforms.translateY(-params.pegDiameter / 2, 
+      transforms.translateX(params.pegDistance / 2, 
+        transforms.rotateX(utils.degToRad(90), 
+          transforms.rotateY(utils.degToRad(90), 
+            hookMountBase
+          )
         )
       )
     )
@@ -40,7 +42,7 @@ const createBoardHookBase = (params) => {
 }
 
 const createBoardHookBaseExtrusion = (params) => {
-    const startPoly = primitives.polygon({ points: [[-params.pegDistance * 1.5, 0], [params.boardHookBaseWidth, 0], [params.boardHookBaseWidth - (params.pegDistance / 2), params.boardHookBaseHeight], [-params.pegDistance, params.boardHookBaseHeight]] })
+    const startPoly = primitives.polygon({ points: [[-params.pegDistance * 1.25, 0], [params.boardHookBaseWidth - (params.pegDistance * 0.75), 0], [params.boardHookBaseWidth - (params.pegDistance), params.boardHookBaseHeight], [-params.pegDistance, params.boardHookBaseHeight]] })
     const base = extrusions.slice.fromSides(geometries.geom2.toSides(startPoly))
     
     let boardHookBaseExtrusion = extrusions.extrudeFromSlices(
@@ -48,24 +50,40 @@ const createBoardHookBaseExtrusion = (params) => {
         numberOfSlices: params.boardHookBaseDepth,
         callback: (progress, count, base) => {
           const translationMatrix = maths.mat4.fromTranslation(maths.mat4.create(), [0, 0, progress * params.boardHookBaseDepth])
-          const scaleMatrix = maths.mat4.fromScaling(maths.mat4.create(), [1, (1 - progress) * params.boardHookBaseNearFarPlaneScale + 1, 1])
+          const scaleMatrix = maths.mat4.fromScaling(maths.mat4.create(), [(1 - progress) * params.boardHookBaseNearFarPlaneScale + 1, (1 - progress) * params.boardHookBaseNearFarPlaneScale + 1, 1])
           return extrusions.slice.transform(maths.mat4.multiply(maths.mat4.create(), scaleMatrix, translationMatrix), base)
         }
       }, base
     )
 
-    let boardHookBaseCutout = extrusions.extrudeFromSlices(
+    let boardHookBaseMountCutout = extrusions.extrudeFromSlices(
       {
         numberOfSlices: params.pegMountDepth,
         callback: (progress, count, base) => {
           const translationMatrix = maths.mat4.fromTranslation(maths.mat4.create(), [0, (0.08 * params.boardHookBaseHeight) / 2, progress * (params.pegMountDepth - (params.pegClearance * 2))])
-          const scaleMatrix = maths.mat4.fromScaling(maths.mat4.create(), [1.2, (params.boardHookBaseNearFarPlaneScale + 1) * 0.92, 1])
+          const scaleMatrix = maths.mat4.fromScaling(maths.mat4.create(), [2, (params.boardHookBaseNearFarPlaneScale + 1) * 0.92, 1])
           return extrusions.slice.transform(maths.mat4.multiply(maths.mat4.create(), scaleMatrix, translationMatrix), base)
         }
       }, base
     )
 
-    return booleans.subtract(boardHookBaseExtrusion, boardHookBaseCutout)
+    const boardHookBaseCutoutLength = (params.boardHookBaseDepth - (params.insertDropOffset - params.insertDropDistance) - params.pegMountDepth * 4)
+    const nearFarPlaneScale = (boardHookBaseCutoutLength / params.boardHookBaseDepth) * params.boardHookBaseNearFarPlaneScale
+    let boardHookBaseCutout = extrusions.extrudeFromSlices(
+      {
+        numberOfSlices: params.pegMountDepth,
+        callback: (progress, count, base) => {
+          const translationMatrix = maths.mat4.fromTranslation(maths.mat4.create(), [0, 0, progress * boardHookBaseCutoutLength])
+          const scaleMatrix = maths.mat4.fromScaling(maths.mat4.create(), [(1 - progress) * nearFarPlaneScale + 1, (1 - progress) * nearFarPlaneScale + 1, 1])
+          return extrusions.slice.transform(maths.mat4.multiply(maths.mat4.create(), scaleMatrix, translationMatrix), base)
+        }
+      }, base
+    )
+    boardHookBaseCutout = transforms.scale([2, 1.25, 1],
+      transforms.translate([0, -params.pegMountDepth * 4, params.pegMountDepth * 2], boardHookBaseCutout)
+    )
+
+    return booleans.subtract(booleans.subtract(boardHookBaseExtrusion, boardHookBaseMountCutout), boardHookBaseCutout)
 }
 
 const main = (params) => {
@@ -92,7 +110,7 @@ const main = (params) => {
   let existingSteelPegboardHookInsertMold = booleans.union(existingSteelPegboardHookInsertSlices)
 
   // Align to the min X axis of the hook base, and the max Z axis
-  existingSteelPegboardHookInsertMold = transforms.translate([0, 0, params.insertDropOffset], existingSteelPegboardHookInsertMold)
+  existingSteelPegboardHookInsertMold = transforms.translate([-params.pegDiameter, 0, params.insertDropOffset], existingSteelPegboardHookInsertMold)
 
   // Create the board hook base and subtract away the insert mold
   let boardHook = createBoardHookBase(params)
@@ -113,16 +131,16 @@ const getParameterDefinitions = () => {
         { name: 'pegMountDepth', type: 'number', initial: 7,  caption: 'Existing Hook Mount Base: Depth in mm' },
 
         { name: 'existingHookAngle', type: 'number', initial: 40,  caption: 'Existing Steel Pegboard Hook: Angle in degrees' },
-        { name: 'numInsertSegments', type: 'number', initial: 24,  caption: 'Existing Steel Pegboard Hook: Number of segments for insertion molding' },
+        { name: 'numInsertSegments', type: 'number', initial: 48,  caption: 'Existing Steel Pegboard Hook: Number of segments for insertion molding' },
         { name: 'insertDropOffset', type: 'number', initial: 113,  caption: 'Existing Steel Pegboard Hook: Insertion drop offset in mm' },
         { name: 'insertDropDistance', type: 'number', initial: 84,  caption: 'Existing Steel Pegboard Hook: Insertion drop distance in mm' },
         { name: 'insertSlideDistance', type: 'number', initial: 28,  caption: 'Existing Steel Pegboard Hook: Insertion rotation angle in degrees' },
 
         { name: 'boardHookBaseWidth', type: 'number', initial: 64,  caption: 'Board Hook Base: Width in mm' },
-        { name: 'boardHookBaseHeight', type: 'number', initial: 44,  caption: 'Board Hook Base: Height in mm' },
+        { name: 'boardHookBaseHeight', type: 'number', initial: 48,  caption: 'Board Hook Base: Height in mm' },
         { name: 'boardHookBaseDepth', type: 'number', initial: 135,  caption: 'Board Hook Base: Depth in mm' },
         { name: 'boardHookAngle', type: 'number', initial: -5,  caption: 'Board Hook Base: Angle in degrees, offset from vertical' },
-        { name: 'boardHookBaseNearFarPlaneScale', type: 'number', initial: 0.5,  caption: 'Board Hook Base: Scale for difference between near and far plane' },
+        { name: 'boardHookBaseNearFarPlaneScale', type: 'number', initial: 0.35,  caption: 'Board Hook Base: Scale for difference between near and far plane' },
     ]
 }
 
