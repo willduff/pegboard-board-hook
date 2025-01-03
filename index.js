@@ -24,7 +24,7 @@ const createSteelPegboardHook = (params) => {
 
 const createHookMountBase = (params) => {
   return transforms.translateZ(params.pegMountDepth - (params.pegClearance * 2),
-    transforms.translateY(-params.pegDiameter / 2, 
+    transforms.translateY(-params.pegDiameter + params.pegClearance, 
       transforms.translateX(params.pegDistance / 2, 
         transforms.rotateX(utils.degToRad(90), 
           transforms.rotateY(utils.degToRad(90), 
